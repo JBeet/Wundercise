@@ -4,8 +4,11 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.TextView;
@@ -70,7 +73,7 @@ import rx.schedulers.Schedulers;
  *
  * @author Bruno Oliveira (btco), 2013-04-26
  */
-public class MainActivity extends Activity
+public class MainActivity extends ActionBarActivity
         implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener,
         View.OnClickListener, RealTimeMessageReceivedListener,
         RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener, LoginEventListener {
@@ -80,7 +83,7 @@ public class MainActivity extends Activity
      * the game with the Google Play game services API.
      */
 
-    final static String TAG = "ButtonClicker2000";
+    final static String TAG = "Wundercise";
 
     // Request codes for the UIs that we show with startActivityForResult:
     final static int RC_SELECT_PLAYERS = 10000;
@@ -137,6 +140,7 @@ public class MainActivity extends Activity
     private boolean mAutoStartSignInFlow = true;
     private float mLastInclination = 0.0f;
     private float mRotationCount;
+    private ChromeTour chromecast;
     private Subscription mWebSocketSubscription;
     private Subscription mAccGyroDeviceSubscription;
     private float mCurrentVelocity;
@@ -162,11 +166,36 @@ public class MainActivity extends Activity
         if (!RelayrSdk.isUserLoggedIn()) {
             //if the user isn't logged in, we call the logIn method
             RelayrSdk.logIn(this, this);
+        } else {
+            subscribeToRelyr();
         }
-//        else {
-//            subscribeToRelyr();
-//        }
+      chromecast = new ChromeTour(getApplicationContext());
     }
+  @Override
+  public boolean onCreateOptionsMenu(Menu menu) {
+    // Inflate the menu; this adds items to the action bar if it is present.
+    getMenuInflater().inflate(R.menu.menu_main, menu);
+    MenuItem chromecastMenu = menu.findItem(R.id.media_route_menu_item);
+    if (chromecastMenu != null)
+      chromecast.SetChromecastSelector(chromecastMenu);
+
+    chromecast.Start();
+    return super.onCreateOptionsMenu(menu);
+  }
+
+  @Override
+  protected void onResume() {
+    super.onResume();
+    if (chromecast != null)
+      chromecast.Start();
+  }
+  @Override
+  protected void onPause() {
+    if (isFinishing()) {
+      chromecast.Stop();
+    }
+    super.onPause();
+  }
 
 
     private void subscribeToRelyr() {
@@ -277,7 +306,6 @@ public class MainActivity extends Activity
         switch (v.getId()) {
             case R.id.button_single_player:
             case R.id.button_single_player_2:
-                subscribeToRelyr();
                 // play a single-player game
                 resetGameVars();
                 startGame(false);
@@ -497,6 +525,7 @@ public class MainActivity extends Activity
         } else {
             switchToScreen(R.id.screen_wait);
         }
+      chromecast.Stop();
         super.onStop();
     }
 
@@ -514,6 +543,7 @@ public class MainActivity extends Activity
             Log.d(TAG, "Connecting client.");
             mGoogleApiClient.connect();
         }
+      chromecast.Start();
         super.onStart();
     }
 
@@ -976,6 +1006,8 @@ public class MainActivity extends Activity
     // updates the label that shows my score
     void updateScoreDisplay() {
         ((TextView) findViewById(R.id.my_score)).setText(formatScore(mScore));
+
+        chromecast.sendMessage("your score: "+formatScore(mScore));
     }
 
     // formats a score as a three-digit number
