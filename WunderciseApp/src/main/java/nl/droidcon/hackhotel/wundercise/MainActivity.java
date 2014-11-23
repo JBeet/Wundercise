@@ -4,8 +4,11 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.TextView;
@@ -70,7 +73,7 @@ import rx.schedulers.Schedulers;
  *
  * @author Bruno Oliveira (btco), 2013-04-26
  */
-public class MainActivity extends Activity
+public class MainActivity extends ActionBarActivity
         implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener,
         View.OnClickListener, RealTimeMessageReceivedListener,
         RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener, LoginEventListener {
@@ -137,7 +140,7 @@ public class MainActivity extends Activity
     private boolean mAutoStartSignInFlow = true;
     private float mLastInclination;
     private float mRotationCount;
-
+    private ChromeTour chromecast;
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -162,7 +165,34 @@ public class MainActivity extends Activity
         } else {
             subscribeToRelyr();
         }
+      chromecast = new ChromeTour(getApplicationContext());
+
     }
+  @Override
+  public boolean onCreateOptionsMenu(Menu menu) {
+    // Inflate the menu; this adds items to the action bar if it is present.
+    getMenuInflater().inflate(R.menu.menu_main, menu);
+    MenuItem ChromecastMenu = menu.findItem(R.id.media_route_menu_item);
+    if (ChromecastMenu != null)
+      chromecast.SetChromecastSelector(ChromecastMenu);
+
+    chromecast.Start();
+    return true;
+  }
+
+  @Override
+  protected void onResume() {
+    super.onResume();
+    if (chromecast != null)
+      chromecast.Start();
+  }
+  @Override
+  protected void onPause() {
+    if (isFinishing()) {
+      chromecast.Stop();
+    }
+    super.onPause();
+  }
 
 
     private void subscribeToRelyr() {
@@ -498,6 +528,7 @@ public class MainActivity extends Activity
         } else {
             switchToScreen(R.id.screen_wait);
         }
+      chromecast.Stop();
         super.onStop();
     }
 
@@ -515,6 +546,7 @@ public class MainActivity extends Activity
             Log.d(TAG, "Connecting client.");
             mGoogleApiClient.connect();
         }
+      chromecast.Start();
         super.onStart();
     }
 
