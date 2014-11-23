@@ -39,6 +39,6 @@
     <string name="chromecast_connector_menu_item">Cast it!</string>
     <string name="logo_url">http://www.tuxwebsolutions.nl/wp-content/uploads/2013/09/tux-web-solutions-logo.png</string>
     <string name="loading_message">Hey you!\nYes you!\nStand still laddy!\n...yada...\n...yada...\n...yada...\n..something about bricks...\n</string>
-    <string name="chromecase_namespace">urn:x-cast:com.google.cast.sample.helloworld</string>
+    <string name="chromecase_namespace">urn:x-cast:nl.droidcon.hackhotel.wundercise</string>
 
 </resources>

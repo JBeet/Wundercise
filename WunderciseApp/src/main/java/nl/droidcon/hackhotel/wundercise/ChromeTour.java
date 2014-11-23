@@ -37,18 +37,16 @@ public class ChromeTour
   private ChromecastRouterCallback mMediaRouterCallback;
   MediaRouter chromecastRouter;
   MediaRouteSelector chromecastSelector;
-  private String App_ID;
 
   private void initChromecast()
   {
 
     chromecastRouter = MediaRouter.getInstance(appContext);
-    App_ID = appContext.getString(R.string.chromecast_app_id);
-    //App_ID = CastMediaControlIntent.DEFAULT_MEDIA_RECEIVER_APPLICATION_ID;
+    String app_ID = appContext.getString(R.string.chromecast_app_id);
 
 
     chromecastSelector = new MediaRouteSelector.Builder()
-        .addControlCategory(CastMediaControlIntent.categoryForCast(App_ID))
+        .addControlCategory(CastMediaControlIntent.categoryForCast(app_ID))
         .build();
     mMediaRouterCallback = new ChromecastRouterCallback();
   }
@@ -228,7 +226,8 @@ public class ChromeTour
         {
           try
           {
-            Cast.CastApi.launchApplication(apiClient, App_ID, false)
+              String app_ID = appContext.getString(R.string.chromecast_app_id);
+              Cast.CastApi.launchApplication(apiClient, app_ID, false)
                 .setResultCallback(
                     new ResultCallback<Cast.ApplicationConnectionResult>()
                     {

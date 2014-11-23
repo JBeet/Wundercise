@@ -83,7 +83,7 @@ public class MainActivity extends ActionBarActivity
      * the game with the Google Play game services API.
      */
 
-    final static String TAG = "ButtonClicker2000";
+    final static String TAG = "Wundercise";
 
     // Request codes for the UIs that we show with startActivityForResult:
     final static int RC_SELECT_PLAYERS = 10000;
@@ -166,18 +166,17 @@ public class MainActivity extends ActionBarActivity
             subscribeToRelyr();
         }
       chromecast = new ChromeTour(getApplicationContext());
-
     }
   @Override
   public boolean onCreateOptionsMenu(Menu menu) {
     // Inflate the menu; this adds items to the action bar if it is present.
     getMenuInflater().inflate(R.menu.menu_main, menu);
-    MenuItem ChromecastMenu = menu.findItem(R.id.media_route_menu_item);
-    if (ChromecastMenu != null)
-      chromecast.SetChromecastSelector(ChromecastMenu);
+    MenuItem chromecastMenu = menu.findItem(R.id.media_route_menu_item);
+    if (chromecastMenu != null)
+      chromecast.SetChromecastSelector(chromecastMenu);
 
     chromecast.Start();
-    return true;
+    return super.onCreateOptionsMenu(menu);
   }
 
   @Override
@@ -973,6 +972,8 @@ public class MainActivity extends ActionBarActivity
     // updates the label that shows my score
     void updateScoreDisplay() {
         ((TextView) findViewById(R.id.my_score)).setText(formatScore(mScore));
+
+        chromecast.sendMessage("your score: "+formatScore(mScore));
     }
 
     // formats a score as a three-digit number
