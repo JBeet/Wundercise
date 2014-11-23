@@ -135,11 +135,6 @@ public class MainActivity extends Activity
     // Set to true to automatically start the sign in flow when the Activity starts.
     // Set to false to require the user to click the button in order to sign in.
     private boolean mAutoStartSignInFlow = true;
-    private Subscription mTemperatureDeviceSubscription;
-    private Subscription mWebSocketSubscription;
-    private TextView mTemperatureValueTextView;
-    private float mTopSpeed;
-    private TextView mTopSpeedTextView;
     private float mLastInclination;
     private float mRotationCount;
 
@@ -162,7 +157,6 @@ public class MainActivity extends Activity
         }
 
         if (!RelayrSdk.isUserLoggedIn()) {
-
             //if the user isn't logged in, we call the logIn method
             RelayrSdk.logIn(this, this);
         } else {
@@ -172,7 +166,7 @@ public class MainActivity extends Activity
 
 
     private void subscribeToRelyr() {
-        mTemperatureDeviceSubscription = RelayrSdk.getRelayrApi()
+        Subscription accGyroDeviceSubscription = RelayrSdk.getRelayrApi()
                 .getUserInfo()
                 .flatMap(new Func1<User, Observable<List<Transmitter>>>() {
                     @Override
@@ -229,13 +223,13 @@ public class MainActivity extends Activity
 
                     @Override
                     public void onNext(TransmitterDevice device) {
-                        subscribeForTemperatureUpdates(device);
+                        subscribeForAccGyroUpdates(device);
                     }
                 });
     }
 
-    private void subscribeForTemperatureUpdates(TransmitterDevice device) {
-        mWebSocketSubscription = RelayrSdk.getWebSocketClient()
+    private void subscribeForAccGyroUpdates(TransmitterDevice device) {
+        Subscription webSocketSubscription = RelayrSdk.getWebSocketClient()
                 .subscribe(device, new Subscriber<Object>() {
 
                     @Override
