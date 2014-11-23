@@ -36,5 +36,7 @@
     <string name="something_went_wrong">Something went wrong</string>
     <string name="show_leaderboard">Leaderboard</string>
     <string name="show_leaderboard_explanation">How do you rank against your friends \nand the rest of the world?</string>
+    <string name="successfully_logged_in">Successfully logged in</string>
+    <string name="error_logging_in">Error logging in</string>
 
 </resources>

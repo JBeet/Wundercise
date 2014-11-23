@@ -135,8 +135,11 @@ public class MainActivity extends Activity
     // Set to true to automatically start the sign in flow when the Activity starts.
     // Set to false to require the user to click the button in order to sign in.
     private boolean mAutoStartSignInFlow = true;
-    private float mLastInclination;
+    private float mLastInclination = 0.0f;
     private float mRotationCount;
+    private Subscription mWebSocketSubscription;
+    private Subscription mAccGyroDeviceSubscription;
+    private float mCurrentVelocity;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -159,14 +162,15 @@ public class MainActivity extends Activity
         if (!RelayrSdk.isUserLoggedIn()) {
             //if the user isn't logged in, we call the logIn method
             RelayrSdk.logIn(this, this);
-        } else {
-            subscribeToRelyr();
         }
+//        else {
+//            subscribeToRelyr();
+//        }
     }
 
 
     private void subscribeToRelyr() {
-        Subscription accGyroDeviceSubscription = RelayrSdk.getRelayrApi()
+        mAccGyroDeviceSubscription = RelayrSdk.getRelayrApi()
                 .getUserInfo()
                 .flatMap(new Func1<User, Observable<List<Transmitter>>>() {
                     @Override
@@ -229,7 +233,7 @@ public class MainActivity extends Activity
     }
 
     private void subscribeForAccGyroUpdates(TransmitterDevice device) {
-        Subscription webSocketSubscription = RelayrSdk.getWebSocketClient()
+        mWebSocketSubscription = RelayrSdk.getWebSocketClient()
                 .subscribe(device, new Subscriber<Object>() {
 
                     @Override
@@ -246,25 +250,19 @@ public class MainActivity extends Activity
                     @Override
                     public void onNext(Object o) {
                         Reading reading = new Gson().fromJson(o.toString(), Reading.class);
-//                        mTemperatureValueTextView.setText(reading.gyro.x +"\n"+ reading.gyro.y +"\n"+ reading.gyro.z);
+                        Log.d("KONRAD", "ts: " + reading.ts + " Z: " + reading.gyro.z);
 
-//                        if (mTopSpeed < reading.gyro.z) {
-//                            mTopSpeedTextView.setText("Top speed: " + reading.gyro.z);
-//                            mTopSpeed = reading.gyro.z;
-//                        }
-
-                        countRotations(reading.accel.y);
+                        //countRotations(reading.gyro.z);
+                        mCurrentVelocity = Math.abs(reading.gyro.z);
 //                        updateRotationsLayout();
                     }
-
-
                 });
     }
 
     private void countRotations(float currentInclination) {
         if (mLastInclination * currentInclination < 0) {
             mRotationCount += 0.5;
-
+            Log.d("KORNAD", "rotation count: " + mRotationCount);
             if (mRotationCount%1 == 0.0) {
                 scoreOnePoint();
             }
@@ -279,6 +277,7 @@ public class MainActivity extends Activity
         switch (v.getId()) {
             case R.id.button_single_player:
             case R.id.button_single_player_2:
+                subscribeToRelyr();
                 // play a single-player game
                 resetGameVars();
                 startGame(false);
@@ -540,6 +539,13 @@ public class MainActivity extends Activity
         } else {
             switchToMainScreen();
         }
+
+        unsubscribeToRelayr();
+    }
+
+    private void unsubscribeToRelayr() {
+        mAccGyroDeviceSubscription.unsubscribe();
+        mWebSocketSubscription.unsubscribe();
     }
 
     // Show the waiting room UI to track the progress of other players as they enter the
@@ -806,6 +812,17 @@ public class MainActivity extends Activity
 
     // Game tick -- update countdown, check if game ended.
     void gameTick() {
+
+        //mCurrentVelocity
+        int secondsPassed = GAME_DURATION - mSecondsLeft;
+        int score;
+        if (secondsPassed >= 1) {
+            score = (int) ((mScore * secondsPassed + mCurrentVelocity) / (secondsPassed+1));
+        } else {
+            score = (int) mCurrentVelocity;
+        }
+        setScore(score);
+
         if (mSecondsLeft > 0)
             --mSecondsLeft;
 
@@ -815,9 +832,15 @@ public class MainActivity extends Activity
 
         if (mSecondsLeft <= 0) {
             // finish game
-            findViewById(R.id.button_click_me).setVisibility(View.GONE);
-            broadcastScore(true);
+            finishGame();
         }
+    }
+
+    private void finishGame() {
+        findViewById(R.id.button_click_me).setVisibility(View.GONE);
+        broadcastScore(true);
+        unsubscribeToRelayr();
+        mCurrentVelocity = 0;
     }
 
     /*
@@ -829,6 +852,18 @@ public class MainActivity extends Activity
         if (mSecondsLeft <= 0)
             return; // too late!
         ++mScore;
+        updateScoreDisplay();
+        updatePeerScoresDisplay();
+
+        // broadcast our new score to our peers
+        broadcastScore(false);
+    }
+
+    // indicates the player scored points
+    void setScore(int score) {
+        if (mSecondsLeft <= 0)
+            return; // too late!
+        mScore = score;
         updateScoreDisplay();
         updatePeerScoresDisplay();
 
@@ -997,13 +1032,25 @@ public class MainActivity extends Activity
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     }
 
+    /**
+     * When a user successfuly logs in, the SuccessUserLogin event is
+     * fired, and is handled here:
+     */
     @Override
     public void onSuccessUserLogIn() {
+
+        //use the Toast library to display a message to the user
+        Toast.makeText(this, R.string.successfully_logged_in, Toast.LENGTH_SHORT).show();
+        //call the invalidateOptionsMenu, which is defined in the
+        //Activity class and is used to reset the menu option
+        //invalidateOptionsMenu();
+
+        //subscribeToRelyr();
 
     }
 
     @Override
     public void onErrorLogin(Throwable throwable) {
-
+        Toast.makeText(this, R.string.error_logging_in, Toast.LENGTH_SHORT).show();
     }
 }
