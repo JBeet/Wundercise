@@ -5,7 +5,7 @@ android {
         config {
             keyAlias 'buttonclicker'
             keyPassword '******'
-            storeFile file('/Users/jaap/HotelHack.jks')
+            storeFile file('../HotelHack.jks')
             storePassword '******'
         }
     }
@@ -35,4 +35,5 @@ dependencies {
     compile 'com.android.support:support-v4:21.0.+'
     compile 'com.android.support:appcompat-v7:21.0.+'
     compile 'com.google.android.gms:play-services:6+'
+    compile 'io.relayr:android-sdk:0.0.1'
 }

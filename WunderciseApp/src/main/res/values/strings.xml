@@ -33,5 +33,6 @@
     <string name="is_inviting_you">is challenging you to a game!</string>
     <string name="signin_failure">Unable to sign in. Check your internet connection and try again later.</string>
     <string name="signin_other_error">There was an issue with sign in. Please try again later.</string>
+    <string name="something_went_wrong">Something went wrong</string>
 
 </resources>

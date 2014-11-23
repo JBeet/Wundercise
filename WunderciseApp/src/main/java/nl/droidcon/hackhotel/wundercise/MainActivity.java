@@ -9,6 +9,7 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -26,6 +27,7 @@ import com.google.android.gms.games.multiplayer.realtime.RoomConfig;
 import com.google.android.gms.games.multiplayer.realtime.RoomStatusUpdateListener;
 import com.google.android.gms.games.multiplayer.realtime.RoomUpdateListener;
 import com.google.android.gms.plus.Plus;
+import com.google.gson.Gson;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -33,6 +35,20 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import io.relayr.LoginEventListener;
+import io.relayr.RelayrSdk;
+import io.relayr.model.DeviceModel;
+import io.relayr.model.Reading;
+import io.relayr.model.Transmitter;
+import io.relayr.model.TransmitterDevice;
+import io.relayr.model.User;
+import rx.Observable;
+import rx.Subscriber;
+import rx.Subscription;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Func1;
+import rx.schedulers.Schedulers;
 
 
 /**
@@ -57,7 +73,7 @@ import java.util.Set;
 public class MainActivity extends Activity
         implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener,
         View.OnClickListener, RealTimeMessageReceivedListener,
-        RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener {
+        RoomStatusUpdateListener, RoomUpdateListener, OnInvitationReceivedListener, LoginEventListener {
 
     /*
      * API INTEGRATION SECTION. This section contains the code that integrates
@@ -118,6 +134,13 @@ public class MainActivity extends Activity
     // Set to true to automatically start the sign in flow when the Activity starts.
     // Set to false to require the user to click the button in order to sign in.
     private boolean mAutoStartSignInFlow = true;
+    private Subscription mTemperatureDeviceSubscription;
+    private Subscription mWebSocketSubscription;
+    private TextView mTemperatureValueTextView;
+    private float mTopSpeed;
+    private TextView mTopSpeedTextView;
+    private float mLastInclination;
+    private float mRotationCount;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -136,6 +159,122 @@ public class MainActivity extends Activity
         for (int id : CLICKABLES) {
             findViewById(id).setOnClickListener(this);
         }
+
+        if (!RelayrSdk.isUserLoggedIn()) {
+
+            //if the user isn't logged in, we call the logIn method
+            RelayrSdk.logIn(this, this);
+        } else {
+            subscribeToRelyr();
+        }
+    }
+
+
+    private void subscribeToRelyr() {
+        mTemperatureDeviceSubscription = RelayrSdk.getRelayrApi()
+                .getUserInfo()
+                .flatMap(new Func1<User, Observable<List<Transmitter>>>() {
+                    @Override
+                    public Observable<List<Transmitter>> call(User user) {
+                        return RelayrSdk.getRelayrApi().getTransmitters(user.id);
+                    }
+                })
+                .flatMap(new Func1<List<Transmitter>, Observable<List<TransmitterDevice>>>() {
+                    @Override
+                    public Observable<List<TransmitterDevice>> call(List<Transmitter> transmitters) {
+                        // This is a naive implementation. Users may own multiple WunderBars or different
+                        // kinds of transmitters.
+                        if (transmitters.isEmpty())
+                            return Observable.from(new ArrayList<List<TransmitterDevice>>());
+                        return RelayrSdk.getRelayrApi().getTransmitterDevices(transmitters.get(0).id);
+                    }
+                })
+                .filter(new Func1<List<TransmitterDevice>, Boolean>() {
+                    @Override
+                    public Boolean call(List<TransmitterDevice> devices) {
+                        // Check whether there is a thermometer among the devices listed under the transmitter.
+                        for (TransmitterDevice device : devices) {
+                            if (device.model.equals(DeviceModel.ACCELEROMETER_GYROSCOPE.getId())) {
+                                return true;
+                            }
+                        }
+                        return false;
+                    }
+                })
+                .flatMap(new Func1<List<TransmitterDevice>, Observable<TransmitterDevice>>() {
+                    @Override
+                    public Observable<TransmitterDevice> call(List<TransmitterDevice> devices) {
+                        for (TransmitterDevice device : devices) {
+                            if (device.model.equals(DeviceModel.ACCELEROMETER_GYROSCOPE.getId())) {
+                                return Observable.just(device);
+                            }
+                        }
+                        return null;
+                    }
+                })
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Subscriber<TransmitterDevice>() {
+                    @Override
+                    public void onCompleted() {
+
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        Toast.makeText(MainActivity.this, R.string.something_went_wrong,
+                                Toast.LENGTH_SHORT).show();
+                    }
+
+                    @Override
+                    public void onNext(TransmitterDevice device) {
+                        subscribeForTemperatureUpdates(device);
+                    }
+                });
+    }
+
+    private void subscribeForTemperatureUpdates(TransmitterDevice device) {
+        mWebSocketSubscription = RelayrSdk.getWebSocketClient()
+                .subscribe(device, new Subscriber<Object>() {
+
+                    @Override
+                    public void onCompleted() {
+
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        Toast.makeText(MainActivity.this, R.string.something_went_wrong,
+                                Toast.LENGTH_SHORT).show();
+                    }
+
+                    @Override
+                    public void onNext(Object o) {
+                        Reading reading = new Gson().fromJson(o.toString(), Reading.class);
+//                        mTemperatureValueTextView.setText(reading.gyro.x +"\n"+ reading.gyro.y +"\n"+ reading.gyro.z);
+
+//                        if (mTopSpeed < reading.gyro.z) {
+//                            mTopSpeedTextView.setText("Top speed: " + reading.gyro.z);
+//                            mTopSpeed = reading.gyro.z;
+//                        }
+
+                        countRotations(reading.accel.y);
+//                        updateRotationsLayout();
+                    }
+
+
+                });
+    }
+
+    private void countRotations(float currentInclination) {
+        if (mLastInclination * currentInclination < 0) {
+            mRotationCount += 0.5;
+
+            if (mRotationCount%1 == 0.0) {
+                scoreOnePoint();
+            }
+        }
+        mLastInclination = currentInclination;
     }
 
     @Override
@@ -848,5 +987,15 @@ public class MainActivity extends Activity
     // Clears the flag that keeps the screen on.
     void stopKeepingScreenOn() {
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+    }
+
+    @Override
+    public void onSuccessUserLogIn() {
+
+    }
+
+    @Override
+    public void onErrorLogin(Throwable throwable) {
+
     }
 }
