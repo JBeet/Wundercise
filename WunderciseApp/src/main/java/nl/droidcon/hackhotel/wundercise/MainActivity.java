@@ -1006,7 +1006,6 @@ public class MainActivity extends ActionBarActivity
     // updates the label that shows my score
     void updateScoreDisplay() {
         ((TextView) findViewById(R.id.my_score)).setText(formatScore(mScore));
-
         chromecast.sendMessage("your score: "+formatScore(mScore));
     }
 

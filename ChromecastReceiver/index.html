@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <link rel="stylesheet" type="text/css" href="reset.css">
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <script type="text/javascript" src="https://www.gstatic.com/cast/sdk/libs/receiver/2.0.0/cast_receiver.js"></script>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    <script type="text/javascript">
+$(document).ready(function() {
+    var players = [];
+
+    var createPlayerLink = function(i) {
+        var self = {
+            nameElement: $('#player_'+i+'_name'),
+            scoreElement: $('#player_'+i+'_score'),
+            distanceElement: $('#player_'+i+'_distance'),
+            speedElement: $('#player_'+i+'_speed'),
+            rowElement: $('#player_'+i+'_row'),
+            lineElement: $('#player_'+i+'_line'),
+            setName: function(newName) {
+                self.nameElement.text(newName);
+            },
+            setDistance: function(newDistance) {
+                self.scoreElement.text(newDistance);
+                self.distanceElement.css('margin-left', (newDistance*20) + 'px');
+            },
+            setSpeed: function(newSpeed) {
+                self.speedElement.css('margin-left', (newSpeed*4) + 'px');
+            },
+            setVisible: function(value) {
+                self.rowElement.toggle(value);
+                self.lineElement.toggle(value);
+                self.distanceElement.toggle(value);
+                self.speedElement.toggle(value);
+            }
+        };
+        return self;
+    };
+    var processUpdate = function(data) {
+        for(var i = 0; i < data.length; i++) {
+            var item = data[i];
+            players[i].setName(item.name);
+            players[i].setDistance(item.distance);
+            players[i].setSpeed(item.speed);
+            players[i].setVisible(true);
+        }
+        for(var i = data.length; i < players.length; i++) {
+            players[i].setVisible(false);
+        }
+    }
+
+    for(var i = 1; i < 10; i++)
+        players.push(createPlayerLink(i));
+
+    var data = [{name:'Konrad', distance: 0, speed: 23},{name:'Mark', distance: 0, speed: 15},{name:'Jaap',distance:0,speed: 8}];
+    players[0].rowElement.click(function() {data[0].distance++; processUpdate(data)});
+    players[1].rowElement.click(function() {data[1].distance++; processUpdate(data)});
+    players[2].rowElement.click(function() {data[2].distance++; processUpdate(data)});
+    processUpdate(data);
+});
+    </script>
+    <script type="text/javascript">
+      window.onload = function() {
+        cast.receiver.logger.setLevelValue(0);
+        window.castReceiverManager = cast.receiver.CastReceiverManager.getInstance();
+        console.log('Starting Receiver Manager');
+
+        // handler for the 'ready' event
+        castReceiverManager.onReady = function(event) {
+          console.log('Received Ready event: ' + JSON.stringify(event.data));
+          window.castReceiverManager.setApplicationState("Application status is ready...");
+        };
+
+        // handler for 'senderconnected' event
+        castReceiverManager.onSenderConnected = function(event) {
+          console.log('Received Sender Connected event: ' + event.data);
+          console.log(window.castReceiverManager.getSender(event.data).userAgent);
+        };
+
+        // handler for 'senderdisconnected' event
+        castReceiverManager.onSenderDisconnected = function(event) {
+          console.log('Received Sender Disconnected event: ' + event.data);
+          if (window.castReceiverManager.getSenders().length == 0) {
+	        window.close();
+	      }
+        };
+
+        // handler for 'systemvolumechanged' event
+        castReceiverManager.onSystemVolumeChanged = function(event) {
+          console.log('Received System Volume Changed event: ' + event.data['level'] + ' ' +
+              event.data['muted']);
+        };
+        // create a CastMessageBus to handle messages for a custom namespace
+        window.messageBus =
+          window.castReceiverManager.getCastMessageBus(
+              'urn:x-cast:nl.droidcon.hackhotel.wundercise');
+        // handler for the CastMessageBus message event
+        window.messageBus.onMessage = function(event) {
+          console.log('Message [' + event.senderId + ']: ' + event.data);
+          // display the message from the sender
+          displayText(event.data);
+          // inform all senders on the CastMessageBus of the incoming message event
+          // sender message listener will be invoked
+          window.messageBus.send(event.senderId, event.data);
+        }
+        // initialize the CastReceiverManager with an application status message
+        window.castReceiverManager.start({statusText: "Application is starting"});
+      };
+
+      // utility function to display the text message in the input field
+      function displayText(text) {
+        processUpdate(text);
+        window.castReceiverManager.setApplicationState('Updated');
+      };
+    </script>
+</head>
+<body>
+<div id="container">
+    <div id="etappe">
+        <div id="etappe_header">
+            <h2>Ile d'Hack &mdash; Cote de Thon <span>(200km)</span></h2>
+            <h3 style="display:none">1:23:45</h3>
+        </div>
+        <div id="etappe_distance">
+            <div id="distancegrid">
+                <div id="player_1_line" class="distancegrid_line"></div>
+                <div id="player_2_line" class="distancegrid_line"></div>
+                <div id="player_3_line" class="distancegrid_line"></div>
+                <div id="player_4_line" class="distancegrid_line"></div>
+                <div id="player_5_line" class="distancegrid_line"></div>
+                <div id="player_6_line" class="distancegrid_line"></div>
+                <div id="player_7_line" class="distancegrid_line"></div>
+                <div id="player_8_line" class="distancegrid_line"></div>
+                <div id="player_9_line" class="distancegrid_line"></div>
+            </div>
+            <div id="player_1_distance" class="distancegrid_dot orange"></div>
+            <div id="player_2_distance" class="distancegrid_dot pink"></div>
+            <div id="player_3_distance" class="distancegrid_dot purple"></div>
+            <div id="player_4_distance" class="distancegrid_dot deeppurple"></div>
+            <div id="player_5_distance" class="distancegrid_dot indigo"></div>
+            <div id="player_6_distance" class="distancegrid_dot blue"></div>
+            <div id="player_7_distance" class="distancegrid_dot lightblue"></div>
+            <div id="player_8_distance" class="distancegrid_dot cyan"></div>
+            <div id="player_9_distance" class="distancegrid_dot teal"></div>
+        </div>
+        <div id="etappe_speed">
+            <h4>Speed (rpm)</h4>
+            <div id="speedgrid">
+                <div class="speedgrid_line"></div>
+                <div class="speedgrid_line"></div>
+                <div class="speedgrid_line"></div>
+                <div class="speedgrid_line"></div>
+                <div class="speedgrid_line"></div>
+
+                <div id="player_1_speed" class="speedgrid_dot orange"></div>
+                <div id="player_2_speed" class="speedgrid_dot pink"></div>
+                <div id="player_3_speed" class="speedgrid_dot purple"></div>
+                <div id="player_4_speed" class="speedgrid_dot deeppurple"></div>
+                <div id="player_5_speed" class="speedgrid_dot indigo"></div>
+                <div id="player_6_speed" class="speedgrid_dot blue"></div>
+                <div id="player_7_speed" class="speedgrid_dot lightblue"></div>
+                <div id="player_8_speed" class="speedgrid_dot cyan"></div>
+                <div id="player_9_speed" class="speedgrid_dot teal"></div>
+            </div>
+            <div id="speedgrid_legend">
+                <span>0</span>
+                <span>100</span>
+                <span>200</span>
+                <span>300</span>
+            </div>
+        </div>
+    </div>
+    <div id="ranking">
+        <h1>Tour de Chrome</h1>
+        <table id="results_table">
+            <tr id="player_1_row">
+                <td>1</td>
+                <td id="player_1_name">Name Surname</td>
+                <td id="player_1_score">33</td>
+            </tr>
+            <tr id="player_2_row">
+                <td>2</td>
+                <td id="player_2_name">Name Surname</td>
+                <td id="player_2_score">33</td>
+            </tr>
+            <tr id="player_3_row">
+                <td>3</td>
+                <td id="player_3_name">Name Surname</td>
+                <td id="player_3_score">33</td>
+            </tr>
+            <tr id="player_4_row">
+                <td>4</td>
+                <td id="player_4_name">Name Surname</td>
+                <td id="player_4_score">33</td>
+            </tr>
+            <tr id="player_5_row">
+                <td>5</td>
+                <td id="player_5_name">Name Surname</td>
+                <td id="player_5_score">33</td>
+            </tr>
+            <tr id="player_6_row">
+                <td>6</td>
+                <td id="player_6_name">Name Surname</td>
+                <td id="player_6_score">33</td>
+            </tr>
+            <tr id="player_7_row">
+                <td>7</td>
+                <td id="player_7_name">Name Surname</td>
+                <td id="player_7_score">33</td>
+            </tr>
+            <tr id="player_8_row">
+                <td>8</td>
+                <td id="player_8_name">Name Surname</td>
+                <td id="player_8_score">33</td>
+            </tr>
+            <tr id="player_9_row">
+                <td>9</td>
+                <td id="player_9_name">Name Surname</td>
+                <td id="player_9_score">33</td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+
+</body>
+</html>
