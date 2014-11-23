@@ -2,6 +2,7 @@
 
     <color name="PrimaryColor">@android:color/holo_green_light</color>
     <color name="PrimaryDarkColor">@android:color/holo_green_dark</color>
+    <color name="AccentColor">@android:color/holo_orange_light</color>
     <color name="PopupColor">@color/PrimaryColor</color>
     <color name="PopupTextColor">#ffffff</color>
     <color name="ButtonTextColor">#ffffff</color>
@@ -11,7 +12,11 @@
 
     <dimen name="TitleSize">30sp</dimen>
 
-    <style name="AppTheme" parent="android:Theme.Light.NoTitleBar.Fullscreen" />
+    <style name="AppTheme" parent="Theme.AppCompat.Light" >
+        <item name="colorPrimary">@color/PrimaryColor</item>
+        <item name="colorPrimaryDark">@color/PrimaryDarkColor</item>
+        <item name="colorAccent">@color/AccentColor</item>
+    </style>
 
     <style name="GameScreen">
         <item name="android:layout_width">match_parent</item>
@@ -69,9 +74,10 @@
         <item name="android:layout_marginTop">40dp</item>
     </style>
 
-    <style name="GameButton">
+    <style name="ButtonBase" parent="android:Widget.Holo.Button.Borderless">
         <item name="android:background">@color/PrimaryColor</item>
-        <item name="android:textColor">@color/ButtonTextColor</item>
+    </style>
+    <style name="GameButton" parent="ButtonBase">
         <item name="android:paddingLeft">10dp</item>
         <item name="android:paddingRight">10dp</item>
         <item name="android:layout_height">40dp</item>

@@ -70,6 +70,7 @@ public class MainActivity extends Activity
     final static int RC_SELECT_PLAYERS = 10000;
     final static int RC_INVITATION_INBOX = 10001;
     final static int RC_WAITING_ROOM = 10002;
+    final static int RC_SHOW_LEADERBOARD = 10003;
     final static int GAME_DURATION = 20; // game duration, seconds.
     // This array lists everything that's clickable, so we can install click
     // event handlers.
@@ -77,7 +78,7 @@ public class MainActivity extends Activity
             R.id.button_accept_popup_invitation, R.id.button_invite_players,
             R.id.button_quick_game, R.id.button_see_invitations, R.id.button_sign_in,
             R.id.button_sign_out, R.id.button_click_me, R.id.button_single_player,
-            R.id.button_single_player_2
+            R.id.button_single_player_2, R.id.button_show_leaderboard
     };
     // This array lists all the individual screens our game has.
     final static int[] SCREENS = {
@@ -194,11 +195,20 @@ public class MainActivity extends Activity
                 // user wants to play against a random opponent right now
                 startQuickGame();
                 break;
+            case R.id.button_show_leaderboard:
+                showLeaderboard();
+                break;
             case R.id.button_click_me:
                 // (gameplay) user clicked the "click me" button
                 scoreOnePoint();
                 break;
         }
+    }
+
+    void showLeaderboard() {
+        String leaderboardId = getString(R.string.bicycle_60s_leaderboard_id);
+        startActivityForResult(Games.Leaderboards.getLeaderboardIntent(mGoogleApiClient,
+                leaderboardId), RC_SHOW_LEADERBOARD);
     }
 
     void startQuickGame() {
@@ -734,6 +744,10 @@ public class MainActivity extends Activity
 
     // Broadcast my score to everybody else.
     void broadcastScore(boolean finalScore) {
+        if (finalScore) {
+            String leaderboardId = getString(R.string.bicycle_60s_leaderboard_id);
+            Games.Leaderboards.submitScore(mGoogleApiClient, leaderboardId, mScore);
+        }
         if (!mMultiplayer)
             return; // playing single-player mode
 
