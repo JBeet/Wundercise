@@ -17,4 +17,5 @@
 <resources>
     <string name="app_id">41783511389</string>
     <string name="bicycle_60s_leaderboard_id">CgkI3ZL305sBEAIQAg</string>
+    <string name="chromecast_app_id">794B7BBF</string>
 </resources>
